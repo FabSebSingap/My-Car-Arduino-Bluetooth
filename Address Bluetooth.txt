@@ -1,0 +1,106 @@
+Sequence DU SLAVE
+AT
+AT+ROLE=0
+AT+UART=9600,0,0
+AT+UART?
+AT+ADDR?
+
+Sequence DU MASTER
+AT
+AT+ROLE=1
+AT+UART=9600,0,0
+AT+UART?
+AT+CMODE=0
+AT+BIND=<Addr du Slave> Ex. AT+BIND=000E,EA,CF4515
+
+
+Slave HC06
++ADDR:000E:EA:CF4515
+AT+ROLE=0
++NAME:MyHC05Slave
+
+Master
++ADDR:98d3:41:fd3e54
++NAME:MyHC05M
+AT+ROLE=1
+
+10 ->6
+11 ->4
+
+Code Maître
+#include <SoftwareSerial.h>
+
+SoftwareSerial ArduinoSlave(2,3);
+String answer;
+String msg;
+
+void setup(){
+
+  Serial.begin(9600);
+  Serial.println("ENTER Commands:");
+  ArduinoSlave.begin(9600);
+                
+}
+
+void loop(){
+  //Read command from monitor
+  readSerialPort();
+  
+  //Read answer from slave
+   while (ArduinoSlave.available()) {
+   delay(10);  
+   if (ArduinoSlave.available() >0) {
+     char c = ArduinoSlave.read();  //gets one byte from serial buffer
+     answer += c; //makes the string readString
+   }
+ }
+  //Send data to slave
+  if(msg!=""){
+    Serial.print("Master sent : ");
+    Serial.println(msg);
+    ArduinoSlave.print(msg);
+    msg="";
+  }
+  //Send answer to monitor
+  if(answer!=""){
+    Serial.print("Slave recieved : ");
+    Serial.println(answer);
+    answer="";
+  }
+}
+
+
+
+Code Esclave
+#include <SoftwareSerial.h>
+
+SoftwareSerial ArduinoMaster(2,3);
+String msg;
+
+void setup(){
+  Serial.begin(9600);
+  ArduinoMaster.begin(9600);    
+}
+
+void loop(){
+  readSerialPort();
+  
+  // Send answer to master
+  if(msg!=""){
+    Serial.print("Master sent : " );
+    Serial.println(msg);
+    ArduinoMaster.print(msg);
+    msg=""; 
+  }
+}
+
+void readSerialPort(){
+ while (ArduinoMaster.available()) {
+   delay(10); 
+   if (ArduinoMaster.available() >0) {
+     char c = ArduinoMaster.read();  //gets one byte from serial buffer
+     msg += c; //makes the string readString
+   }
+ }
+ ArduinoMaster.flush();
+}
